@@ -47,14 +47,13 @@ if not verificar_senha():
 # ------------------------------------
 
 # --- PERSISTÊNCIA DO RASCUNHO EM FICHEIRO ---
-DRAFT_FILE = "rascunho_ete_v11.json"
+DRAFT_FILE = "rascunho_ete_v12.json"
 
 def carregar_rascunho_disco():
   if os.path.exists(DRAFT_FILE):
     try:
       with open(DRAFT_FILE, "r", encoding="utf-8") as f:
         dados = json.load(f)
-        # Garante unicidade estrita pelo ID interno ao carregar do disco
         return dados if isinstance(dados, list) else []
     except Exception:
       return []
@@ -178,7 +177,7 @@ class PDFReport(FPDF):
     self.cell(0, 8, limpar_texto_fpdf("ESTACAO DE TRATAMENTO DE ESGOTO - SESC BERTIOGA"), 0, 1, "C")
     self.set_font("Helvetica", "", 9)
     self.set_text_color(0, 51, 102)
-    self.cell(0, 5, limpar_texto_fpdf("Relatorio Operacional Diario e Atividades — Versao 1.1 (Contrato nº 851.188)"), 0, 1, "C")
+    self.cell(0, 5, limpar_texto_fpdf("Relatorio Operacional Diario e Atividades — Versao 1.2 (Contrato nº 851.188)"), 0, 1, "C")
     self.ln(5)
 
   def footer(self):
@@ -198,7 +197,6 @@ def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
   pdf.cell(0, 8, limpar_texto_fpdf(f" REGISTO DE ATIVIDADES - {mes_nome.upper()} DE {ano}"), 1, 1, "C", True)
   pdf.ln(4)
 
-  # Cabeçalho da Tabela
   pdf.set_font("Helvetica", "B", 8)
   pdf.set_fill_color(230, 235, 240)
   pdf.set_text_color(0, 51, 102)
@@ -221,10 +219,8 @@ def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
         pdf.add_page()
 
       y_inicio = pdf.get_y()
-
       status_txt = limpar_texto_fpdf(item["status"])
       obs_txt = limpar_texto_fpdf(item["observacao"]) if item.get("observacao") else "-"
-
       altura_linha = 18
 
       pdf.cell(12, altura_linha, str(idx), 1, 0, "C")
@@ -244,7 +240,6 @@ def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
 
       pdf.set_xy(x_exec + 45, y_exec)
       pdf.cell(25, altura_linha, f"{item['data']} {item['hora']}", 1, 0, "C")
-
       pdf.cell(30, altura_linha, status_txt, 1, 0, "C")
 
       x_obs = pdf.get_x()
@@ -255,7 +250,6 @@ def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
 
       pdf.set_xy(10, y_inicio + altura_linha)
 
-  # --- CONTAGEM POR OPERADOR APENAS NO PDF ---
   pdf.ln(8)
   y_atual = pdf.get_y()
   if y_atual > 170:
@@ -293,8 +287,7 @@ def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
   else:
     pdf.cell(100, 6, limpar_texto_fpdf("Nenhum registo de membro atribuído."), 1, 1, "C")
 
-  pdf_output_bytes = pdf.output(dest="S").encode("latin1", errors="replace")
-  return pdf_output_bytes
+  return pdf.output(dest="S").encode("latin1", errors="replace")
 
 
 # --- INTERFACE PRINCIPAL ---
@@ -302,8 +295,8 @@ logo_file = resolve_path("logo.jpg")
 
 bloco_cabecalho = """
     <div class="header-container">
-        <h1 style="margin:0; font-size: 24px; color: white;">ETE Sesc Bertioga - Painel Operacional (Versão 1.1)</h1>
-        <p style="margin:5px 0 0 0; font-size: 14px; color: white;">Controlo de Turno, Rascunho Persistente em Disco e Registo — Contrato nº 851.188</p>
+        <h1 style="margin:0; font-size: 24px; color: white;">ETE Sesc Bertioga - Painel Operacional (Versão 1.2)</h1>
+        <p style="margin:5px 0 0 0; font-size: 14px; color: white;">Controlo de Turno, Rascunho Persistente e Registo Anti-Duplicação — Contrato nº 851.188</p>
     </div>
 """
 
@@ -316,13 +309,12 @@ if os.path.exists(logo_file):
 else:
   st.markdown(bloco_cabecalho, unsafe_allow_html=True)
 
-# --- BLOCO DE INSTRUÇÕES E DIRECIONAMENTO (L) ---
 st.markdown("""
     <div class="instruction-box">
-        <strong>📌 ORIENTAÇÕES DE PREENCHIMENTO E USO DO APLICATIVO:</strong><br>
+        <strong>📌 ORIENTAÇÕES DE PREENCHIMENTO E USO DO APLICATIVO (VERSÃO 1.2):</strong><br>
         • <strong>Preenchimento dos Campos:</strong> Selecione o turno, data, hora, os responsáveis da equipe e marque as atividades executadas no período.<br>
-        • <strong>Observações Individuais:</strong> Para cada atividade selecionada, insira o seu respectivo detalhe ou justificativa no campo correspondente que surgirá abaixo (ex: identificação de visitantes na Atividade 41).<br>
-        • <strong>⚠️ ATENÇÃO AO RASCUNHO E CONEXÃO:</strong> O rascunho é guardado automaticamente no disco do dispositivo a cada adição. Caso perca a conexão de internet ou feche o aplicativo, os dados anteriores estarão salvos. Certifique-se de <strong>gerar e descarregar o relatório PDF consolidado</strong> ao término do ciclo ou turno antes de limpar o rascunho para reiniciar os lançamentos.
+        • <strong>Observações Individuais:</strong> Para cada atividade selecionada, insira o seu respectivo detalhe ou justificativa no campo correspondente que surgirá abaixo.<br>
+        • <strong>⚠️ CONTROLO DE DUPLICAÇÃO:</strong> O sistema possui validação por chave única (Data + Turno + Atividade), impedindo que registos do mesmo turno se multipliquen indevidamente ao reabrir ou salvar.
     </div>
 """, unsafe_allow_html=True)
 
@@ -370,16 +362,8 @@ with st.sidebar:
       pass
 
   cal = calendar.monthcalendar(ano, mes_num)
-
-  html_cal = (
-      "<table style='width:100%; text-align:center; font-family:monospace;"
-      " font-size:12px; border-collapse:collapse;' class='notranslate'"
-      " translate='no'>\n"
-  )
-  html_cal += (
-      "<tr><th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th"
-      " class='notranslate' translate='no'>Sex</th><th>Sáb</th><th>Dom</th></tr>\n"
-  )
+  html_cal = "<table style='width:100%; text-align:center; font-family:monospace; font-size:12px; border-collapse:collapse;' class='notranslate' translate='no'>\n"
+  html_cal += "<tr><th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th class='notranslate' translate='no'>Sex</th><th>Sáb</th><th>Dom</th></tr>\n"
 
   for semana in cal:
     html_cal += "<tr>\n"
@@ -387,21 +371,14 @@ with st.sidebar:
       if d == 0:
         html_cal += "<td style='padding:3px;'></td>\n"
       elif d in dias_com_atividade:
-        html_cal += (
-            "<td style='padding:3px;'><span"
-            f" style='background-color:#003366; color:#ffffff; padding:2px 5px;"
-            f" border-radius:3px; font-weight:bold;'>{d:02d}</span></td>\n"
-        )
+        html_cal += f"<td style='padding:3px;'><span style='background-color:#003366; color:#ffffff; padding:2px 5px; border-radius:3px; font-weight:bold;'>{d:02d}</span></td>\n"
       else:
         html_cal += f"<td style='padding:3px; color:#333333;'>{d:02d}</td>\n"
     html_cal += "</tr>\n"
   html_cal += "</table>"
 
   st.markdown(html_cal, unsafe_allow_html=True)
-  st.markdown(
-      "<div style='text-align: center;'><small>* Os dias destacados indicam registos no mês.</small></div>",
-      unsafe_allow_html=True,
-  )
+  st.markdown("<div style='text-align: center;'><small>* Os dias destacados indicam registos no mês.</small></div>", unsafe_allow_html=True)
 
   st.markdown("---")
   st.markdown("<div class='section-title' style='font-size:16px;'>Gestão do Rascunho</div>", unsafe_allow_html=True)
@@ -480,7 +457,7 @@ atividades_base = [f"{i}. {ativ}" for i, ativ in enumerate(atividades_brutas, 1)
 # --- FORMULÁRIO PRINCIPAL ---
 st.markdown("<div class='section-title'>Registo de Turno e Atividades</div>", unsafe_allow_html=True)
 
-with st.form(key="form_registo_geral_v11"):
+with st.form(key="form_registo_geral_v12"):
   
   col_t1, col_t2, col_t3 = st.columns(3)
   with col_t1:
@@ -521,17 +498,16 @@ with st.form(key="form_registo_geral_v11"):
   if atividades_selecionadas:
     st.markdown("---")
     st.markdown("#### 📝 Observações / Detalhes Individuais por Atividade")
-    st.markdown("<small>Preencha especificamente a observação para cada atividade (ex: identificar a empresa na atividade 41).</small>", unsafe_allow_html=True)
+    st.markdown("<small>Preencha especificamente a observação para cada atividade selecionada.</small>", unsafe_allow_html=True)
     
     for ativ in atividades_selecionadas:
-      # Exibe um campo de texto exclusivo para cada atividade escolhida
       observacoes_individuais[ativ] = st.text_input(
           f"Observação para: {ativ[:60]}...",
-          placeholder="Ex: Empresa X esteve presente / Detalhe específico...",
-          key=f"obs_ind_{ativ}"
+          placeholder="Detalhe específico...",
+          key=f"obs_ind_{hash(ativ)}"
       )
 
-  submitted = st.form_submit_button("➕ Adicionar Atividade(s) ao Rascunho Persistente")
+  submitted = st.form_submit_button("➕ Adicionar/Atualizar Atividade(s) sem Duplicar")
 
   if submitted:
     if not (nomes_op or nomes_sup or nomes_mec or nomes_ele):
@@ -552,40 +528,57 @@ with st.form(key="form_registo_geral_v11"):
         with open(foto_path_temp, "wb") as f:
           f.write(foto_file.getbuffer())
 
-      # Carrega o rascunho atual diretamente do disco para evitar duplicação em cache
+      # Carrega rascunho atual do disco
       registros_atuais = carregar_rascunho_disco()
+      data_str = data_lancamento.strftime("%d/%m/%Y")
 
       for ativ in atividades_selecionadas:
         obs_especifica = observacoes_individuais.get(ativ, "").strip()
         
-        novo_registo = {
-            "turno": turno_atual,
-            "data": data_lancamento.strftime("%d/%m/%Y"),
-            "hora": hora_lancamento.strftime("%H:%M"),
-            "atividade": ativ,
-            "executores": str_executores,
-            "status": status_item,
-            "observacao": obs_especifica if obs_especifica else "-",
-            "foto_path": foto_path_temp
-        }
-        registros_atuais.append(novo_registo)
+        # Verifica se já existe um registo exato para mesma Data + Turno + Atividade
+        registo_existente = None
+        for r in registros_atuais:
+          if r.get("data") == data_str and r.get("turno") == turno_atual and r.get("atividade") == ativ:
+            registo_existente = r
+            break
 
-      # Reatribui IDs sequenciais limpos e únicos para evitar qualquer duplicação
+        if registo_existente:
+          # Atualiza os dados existentes para evitar duplicação
+          registo_existente["hora"] = hora_lancamento.strftime("%H:%M")
+          registo_existente["executores"] = str_executores
+          registo_existente["status"] = status_item
+          if obs_especifica:
+            registo_existente["observacao"] = obs_especifica
+          if foto_path_temp:
+            registo_existente["foto_path"] = foto_path_temp
+        else:
+          # Cria novo registo caso não exista
+          novo_registo = {
+              "turno": turno_atual,
+              "data": data_str,
+              "hora": hora_lancamento.strftime("%H:%M"),
+              "atividade": ativ,
+              "executores": str_executores,
+              "status": status_item,
+              "observacao": obs_especifica if obs_especifica else "-",
+              "foto_path": foto_path_temp
+          }
+          registros_atuais.append(novo_registo)
+
+      # Reatribui IDs sequenciais limpos
       for idx, r in enumerate(registros_atuais, 1):
         r["id"] = idx
 
-      # Atualiza a sessão e salva no disco
       st.session_state["registros_turno"] = registros_atuais
       salvar_rascunho_disco(registros_atuais)
 
-      st.success(f"✅ {len(atividades_selecionadas)} atividade(s) adicionada(s) com observações individuais e salvas com segurança!")
+      st.success(f"✅ Atividade(s) processada(s) com sucesso sem duplicação de turnos!")
       st.rerun()
 
 # --- VISUALIZAÇÃO DO RASCUNHO ATUAL ---
 st.markdown("---")
 st.markdown("<div class='section-title'>Rascunho Persistente do Turno (Salvo no Sistema)</div>", unsafe_allow_html=True)
 
-# Sincroniza session_state com o disco para garantir integridade visual
 st.session_state["registros_turno"] = carregar_rascunho_disco()
 
 if len(st.session_state["registros_turno"]) > 0:
