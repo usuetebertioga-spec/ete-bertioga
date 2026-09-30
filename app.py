@@ -148,10 +148,16 @@ LISTA_MECANICOS = ["Cesar"]
 LISTA_ELETROTECNICOS = ["Paulo"]
 LISTA_SUPERVISORES = ["Genilson"]
 
-# --- FUNÇÃO DE LIMPEZA DE TEXTO PARA PDF ---
+# --- FUNÇÃO DE LIMPEZA DE TEXTO PARA PDF (BLindada contra bytearray) ---
 def limpar_texto_fpdf(texto):
+  if isinstance(texto, (bytes, bytearray)):
+    try:
+      texto = texto.decode("utf-8", errors="replace")
+    except Exception:
+      return ""
   if not isinstance(texto, str):
-    return str(texto)
+    texto = str(texto)
+    
   texto = (
       texto.replace("\u2013", "-")
       .replace("\u2014", "-")
@@ -219,7 +225,7 @@ def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
         pdf.add_page()
 
       y_inicio = pdf.get_y()
-      status_txt = limpar_texto_fpdf(item["status"])
+      status_txt = limpar_texto_fpdf(item.get("status", ""))
       obs_txt = limpar_texto_fpdf(item["observacao"]) if item.get("observacao") else "-"
       altura_linha = 18
 
@@ -229,17 +235,17 @@ def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
       y_ativ = pdf.get_y()
       pdf.cell(75, altura_linha, "", 1, 0, "L")
       pdf.set_xy(x_ativ + 1, y_ativ + 1)
-      pdf.multi_cell(73, 3.5, limpar_texto_fpdf(item["atividade"]), border=0, align="L")
+      pdf.multi_cell(73, 3.5, limpar_texto_fpdf(item.get("atividade", "")), border=0, align="L")
 
       pdf.set_xy(x_ativ + 75, y_ativ)
       x_exec = pdf.get_x()
       y_exec = pdf.get_y()
       pdf.cell(45, altura_linha, "", 1, 0, "L")
       pdf.set_xy(x_exec + 1, y_exec + 1)
-      pdf.multi_cell(43, 3.5, limpar_texto_fpdf(item["executores"]), border=0, align="L")
+      pdf.multi_cell(43, 3.5, limpar_texto_fpdf(item.get("executores", "")), border=0, align="L")
 
       pdf.set_xy(x_exec + 45, y_exec)
-      pdf.cell(25, altura_linha, f"{item['data']} {item['hora']}", 1, 0, "C")
+      pdf.cell(25, altura_linha, f"{item.get('data', '')} {item.get('hora', '')}", 1, 0, "C")
       pdf.cell(30, altura_linha, status_txt, 1, 0, "C")
 
       x_obs = pdf.get_x()
@@ -263,6 +269,8 @@ def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
   contagem_membros = {}
   for item in dados_atividades:
     executores_str = item.get("executores", "")
+    if isinstance(executores_str, (bytes, bytearray)):
+      executores_str = executores_str.decode("utf-8", errors="replace")
     partes = executores_str.split("|")
     for parte in partes:
       if ":" in parte:
@@ -287,7 +295,13 @@ def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
   else:
     pdf.cell(100, 6, limpar_texto_fpdf("Nenhum registo de membro atribuído."), 1, 1, "C")
 
-  return pdf.output(dest="S").encode("latin1", errors="replace")
+  # Saída em string bytes segura (sem chamar .encode() em bytearray)
+  pdf_output = pdf.output(dest="S")
+  if isinstance(pdf_output, str):
+    return pdf_output.encode("latin1", errors="replace")
+  elif isinstance(pdf_output, bytearray):
+    return bytes(pdf_output)
+  return pdf_output
 
 
 # --- INTERFACE PRINCIPAL ---
