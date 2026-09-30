@@ -36,7 +36,7 @@ def verificar_senha():
         return True
 
     st.markdown("### 🔒 Acesso Restrito - ETE Sesc Bertioga")
-    st.text_input("Digite a palavra-passe de acesso:", type="password", on_change=senha_correta, key="password")
+    st.text_input("Digite a senha de acesso:", type="password", on_change=senha_correta, key="password")
     
     if "password_correct" in st.session_state:
         st.error("😕 Senha incorreta. Tente novamente.")
@@ -46,7 +46,7 @@ if not verificar_senha():
     st.stop()
 # ------------------------------------
 
-# --- PERSISTÊNCIA DO RASCUNHO EM FICHEIRO ---
+# --- PERSISTÊNCIA DO RASCUNHO EM ARQUIVO ---
 DRAFT_FILE = "rascunho_ete_v12.json"
 
 def carregar_rascunho_disco():
@@ -148,7 +148,7 @@ LISTA_MECANICOS = ["Cesar"]
 LISTA_ELETROTECNICOS = ["Paulo"]
 LISTA_SUPERVISORES = ["Genilson"]
 
-# --- FUNÇÃO DE LIMPEZA DE TEXTO PARA PDF (BLindada contra bytearray) ---
+# --- FUNÇÃO DE LIMPEZA DE TEXTO PARA PDF ---
 def limpar_texto_fpdf(texto):
   if isinstance(texto, (bytes, bytearray)):
     try:
@@ -200,7 +200,7 @@ def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
   pdf.set_font("Helvetica", "B", 11)
   pdf.set_fill_color(0, 51, 102)
   pdf.set_text_color(255, 255, 255)
-  pdf.cell(0, 8, limpar_texto_fpdf(f" REGISTO DE ATIVIDADES - {mes_nome.upper()} DE {ano}"), 1, 1, "C", True)
+  pdf.cell(0, 8, limpar_texto_fpdf(f" REGISTRO DE ATIVIDADES - {mes_nome.upper()} DE {ano}"), 1, 1, "C", True)
   pdf.ln(4)
 
   pdf.set_font("Helvetica", "B", 8)
@@ -217,7 +217,7 @@ def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
   pdf.set_text_color(0, 0, 0)
   
   if not dados_atividades:
-    pdf.cell(277, 8, limpar_texto_fpdf("Nenhuma atividade registada neste periodo."), 1, 1, "C")
+    pdf.cell(277, 8, limpar_texto_fpdf("Nenhuma atividade registrada neste periodo."), 1, 1, "C")
   else:
     for idx, item in enumerate(dados_atividades, 1):
       y_antes = pdf.get_y()
@@ -293,9 +293,8 @@ def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
       pdf.cell(60, 6, limpar_texto_fpdf(membro), 1, 0, "L")
       pdf.cell(40, 6, str(qtd), 1, 1, "C")
   else:
-    pdf.cell(100, 6, limpar_texto_fpdf("Nenhum registo de membro atribuído."), 1, 1, "C")
+    pdf.cell(100, 6, limpar_texto_fpdf("Nenhum registro de membro atribuido."), 1, 1, "C")
 
-  # Saída em string bytes segura (sem chamar .encode() em bytearray)
   pdf_output = pdf.output(dest="S")
   if isinstance(pdf_output, str):
     return pdf_output.encode("latin1", errors="replace")
@@ -310,7 +309,7 @@ logo_file = resolve_path("logo.jpg")
 bloco_cabecalho = """
     <div class="header-container">
         <h1 style="margin:0; font-size: 24px; color: white;">ETE Sesc Bertioga - Painel Operacional (Versão 1.2)</h1>
-        <p style="margin:5px 0 0 0; font-size: 14px; color: white;">Controlo de Turno, Rascunho Persistente e Registo Anti-Duplicação — Contrato nº 851.188</p>
+        <p style="margin:5px 0 0 0; font-size: 14px; color: white;">Controle de Turno, Rascunho Persistente e Registro Anti-Duplicação — Contrato nº 851.188</p>
     </div>
 """
 
@@ -328,7 +327,7 @@ st.markdown("""
         <strong>📌 ORIENTAÇÕES DE PREENCHIMENTO E USO DO APLICATIVO (VERSÃO 1.2):</strong><br>
         • <strong>Preenchimento dos Campos:</strong> Selecione o turno, data, hora, os responsáveis da equipe e marque as atividades executadas no período.<br>
         • <strong>Observações Individuais:</strong> Para cada atividade selecionada, insira o seu respectivo detalhe ou justificativa no campo correspondente que surgirá abaixo.<br>
-        • <strong>⚠️ CONTROLO DE DUPLICAÇÃO:</strong> O sistema possui validação por chave única (Data + Turno + Atividade), impedindo que registos do mesmo turno se multipliquen indevidamente ao reabrir ou salvar.
+        • <strong>⚠️ CONTROLE DE DUPLICAÇÃO:</strong> O sistema possui validação por chave única (Data + Turno + Atividade), impedindo que registros do mesmo turno se multipliquem indevidamente ao reabrir ou salvar.
     </div>
 """, unsafe_allow_html=True)
 
@@ -392,12 +391,12 @@ with st.sidebar:
   html_cal += "</table>"
 
   st.markdown(html_cal, unsafe_allow_html=True)
-  st.markdown("<div style='text-align: center;'><small>* Os dias destacados indicam registos no mês.</small></div>", unsafe_allow_html=True)
+  st.markdown("<div style='text-align: center;'><small>* Os dias destacados indicam registros no mês.</small></div>", unsafe_allow_html=True)
 
   st.markdown("---")
   st.markdown("<div class='section-title' style='font-size:16px;'>Gestão do Rascunho</div>", unsafe_allow_html=True)
   total_rascunho = len(st.session_state["registros_turno"])
-  st.metric("Itens Guardados no Rascunho", total_rascunho)
+  st.metric("Itens Salvos no Rascunho", total_rascunho)
   
   if total_rascunho > 0:
     if st.button("🗑️ Limpar Rascunho Definitivamente"):
@@ -469,15 +468,15 @@ atividades_brutas = [
 atividades_base = [f"{i}. {ativ}" for i, ativ in enumerate(atividades_brutas, 1)]
 
 # --- FORMULÁRIO PRINCIPAL ---
-st.markdown("<div class='section-title'>Registo de Turno e Atividades</div>", unsafe_allow_html=True)
+st.markdown("<div class='section-title'>Registro de Turno e Atividades</div>", unsafe_allow_html=True)
 
-with st.form(key="form_registo_geral_v12"):
+with st.form(key="form_registro_geral_v12"):
   
   col_t1, col_t2, col_t3 = st.columns(3)
   with col_t1:
     turno_atual = st.selectbox("Turno Operacional", ["Turno Manhã", "Turno Tarde", "Turno Noite"])
   with col_t2:
-    data_lancamento = st.date_input("Data do Registo", value=agora_brasilia().date())
+    data_lancamento = st.date_input("Data do Registro", value=agora_brasilia().date())
   with col_t3:
     hora_lancamento = st.time_input("Hora da Execução", value=agora_brasilia().time())
 
@@ -525,7 +524,7 @@ with st.form(key="form_registo_geral_v12"):
 
   if submitted:
     if not (nomes_op or nomes_sup or nomes_mec or nomes_ele):
-      st.warning("⚠️ Selecione pelo menos um responsável na equipa.")
+      st.warning("⚠️ Selecione pelo menos um responsável na equipe.")
     elif not atividades_selecionadas:
       st.warning("⚠️ Selecione pelo menos uma atividade na lista.")
     else:
@@ -542,14 +541,12 @@ with st.form(key="form_registo_geral_v12"):
         with open(foto_path_temp, "wb") as f:
           f.write(foto_file.getbuffer())
 
-      # Carrega rascunho atual do disco
       registros_atuais = carregar_rascunho_disco()
       data_str = data_lancamento.strftime("%d/%m/%Y")
 
       for ativ in atividades_selecionadas:
         obs_especifica = observacoes_individuais.get(ativ, "").strip()
         
-        # Verifica se já existe um registo exato para mesma Data + Turno + Atividade
         registo_existente = None
         for r in registros_atuais:
           if r.get("data") == data_str and r.get("turno") == turno_atual and r.get("atividade") == ativ:
@@ -557,7 +554,6 @@ with st.form(key="form_registo_geral_v12"):
             break
 
         if registo_existente:
-          # Atualiza os dados existentes para evitar duplicação
           registo_existente["hora"] = hora_lancamento.strftime("%H:%M")
           registo_existente["executores"] = str_executores
           registo_existente["status"] = status_item
@@ -566,7 +562,6 @@ with st.form(key="form_registo_geral_v12"):
           if foto_path_temp:
             registo_existente["foto_path"] = foto_path_temp
         else:
-          # Cria novo registo caso não exista
           novo_registo = {
               "turno": turno_atual,
               "data": data_str,
@@ -579,7 +574,6 @@ with st.form(key="form_registo_geral_v12"):
           }
           registros_atuais.append(novo_registo)
 
-      # Reatribui IDs sequenciais limpos
       for idx, r in enumerate(registros_atuais, 1):
         r["id"] = idx
 
@@ -602,7 +596,7 @@ if len(st.session_state["registros_turno"]) > 0:
   st.dataframe(df_rascunho, use_container_width=True)
 
   st.markdown("<div class='section-title'>Geração de Relatório PDF</div>", unsafe_allow_html=True)
-  if st.button("📄 Gerar e Descarregar Relatório PDF Consolidado"):
+  if st.button("📄 Gerar e Baixar Relatório PDF Consolidado"):
     try:
       pdf_bytes = gerar_pdf_relatorio(mes_nome, ano, st.session_state["registros_turno"])
       st.success("Relatório gerado com sucesso!")
