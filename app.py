@@ -8,6 +8,7 @@ from fpdf import FPDF
 import streamlit as st
 import unicodedata
 import pandas as pd
+import pytz
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
@@ -15,6 +16,12 @@ st.set_page_config(
     page_icon="💧",
     layout="wide",
 )
+
+# --- FUSO HORÁRIO DE BRASÍLIA / LOCAL ---
+FUSO_SP = pytz.timezone('America/Sao_Paulo')
+
+def agora_brasilia():
+    return datetime.now(FUSO_SP)
 
 # --- CONTROLO DE ACESSO POR SENHA ---
 def verificar_senha():
@@ -46,7 +53,9 @@ def carregar_rascunho_disco():
   if os.path.exists(DRAFT_FILE):
     try:
       with open(DRAFT_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        dados = json.load(f)
+        # Garante unicidade estrita pelo ID interno ao carregar do disco
+        return dados if isinstance(dados, list) else []
     except Exception:
       return []
   return []
@@ -61,7 +70,7 @@ def salvar_rascunho_disco(registros):
 if "registros_turno" not in st.session_state:
   st.session_state["registros_turno"] = carregar_rascunho_disco()
 
-# --- ESTILIZAÇÃO CSS (Títulos maiores, centralizados, sem ícones, fundo azul escuro e BORDAS em todos os inputs/seletores) ---
+# --- ESTILIZAÇÃO CSS ---
 st.markdown(
     """
     <style>
@@ -76,7 +85,6 @@ st.markdown(
         .header-container h1, .header-container p {
             color: white !important;
         }
-        /* Estilo para títulos destacados: fundo azul escuro, letras brancas, centralizados e fonte maior */
         .section-title {
             background-color: #003366;
             color: white !important;
@@ -88,6 +96,15 @@ st.markdown(
             margin-top: 25px;
             margin-bottom: 15px;
         }
+        .instruction-box {
+            background-color: #e6f0fa;
+            border-left: 5px solid #003366;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            color: #002244;
+            font-size: 14px;
+        }
         .stMultiSelect [data-baseweb="tag"] {
             background-color: #003366 !important;
             color: white !important;
@@ -95,8 +112,6 @@ st.markdown(
         .stMultiSelect [data-baseweb="tag"] span {
             color: white !important;
         }
-        
-        /* Adicionando bordas visíveis e limpas em todos os inputs, selects e caixas de texto */
         div[data-baseweb="select"] > div, 
         div[data-baseweb="base-input"] > div, 
         textarea, 
@@ -104,14 +119,6 @@ st.markdown(
         input[type="number"] {
             border: 1px solid #003366 !important;
             border-radius: 6px !important;
-        }
-        
-        /* Efeito de destaque ao focar no campo */
-        div[data-baseweb="select"] > div:focus-within, 
-        div[data-baseweb="base-input"] > div:focus-within, 
-        textarea:focus {
-            border: 2px solid #003366 !important;
-            box-shadow: 0 0 5px rgba(0, 51, 102, 0.3);
         }
     </style>
 """,
@@ -168,17 +175,17 @@ class PDFReport(FPDF):
         pass
     self.set_font("Helvetica", "B", 13)
     self.set_text_color(0, 51, 102)
-    self.cell(0, 8, limpar_texto_fpdf("ESTAÇÃO DE TRATAMENTO DE ESGOTO - SESC BERTIOGA"), 0, 1, "C")
+    self.cell(0, 8, limpar_texto_fpdf("ESTACAO DE TRATAMENTO DE ESGOTO - SESC BERTIOGA"), 0, 1, "C")
     self.set_font("Helvetica", "", 9)
     self.set_text_color(0, 51, 102)
-    self.cell(0, 5, limpar_texto_fpdf("Relatório Operacional Diário e Atividades — Versão 1.1 (Contrato nº 851.188)"), 0, 1, "C")
+    self.cell(0, 5, limpar_texto_fpdf("Relatorio Operacional Diario e Atividades — Versao 1.1 (Contrato nº 851.188)"), 0, 1, "C")
     self.ln(5)
 
   def footer(self):
     self.set_y(-15)
     self.set_font("Helvetica", "I", 8)
     self.set_text_color(0, 51, 102)
-    self.cell(0, 10, limpar_texto_fpdf(f"Página {self.page_no()} | Tecwater Systems Soluções em Saneamento"), 0, 0, "C")
+    self.cell(0, 10, limpar_texto_fpdf(f"Pagina {self.page_no()} | Tecwater Systems Solucoes em Saneamento"), 0, 0, "C")
 
 def gerar_pdf_relatorio(mes_nome, ano, dados_atividades):
   pdf = PDFReport(orientation="L", unit="mm", format="A4")
@@ -309,13 +316,23 @@ if os.path.exists(logo_file):
 else:
   st.markdown(bloco_cabecalho, unsafe_allow_html=True)
 
+# --- BLOCO DE INSTRUÇÕES E DIRECIONAMENTO (L) ---
+st.markdown("""
+    <div class="instruction-box">
+        <strong>📌 ORIENTAÇÕES DE PREENCHIMENTO E USO DO APLICATIVO:</strong><br>
+        • <strong>Preenchimento dos Campos:</strong> Selecione o turno, data, hora, os responsáveis da equipe e marque as atividades executadas no período.<br>
+        • <strong>Observações Individuais:</strong> Para cada atividade selecionada, insira o seu respectivo detalhe ou justificativa no campo correspondente que surgirá abaixo (ex: identificação de visitantes na Atividade 41).<br>
+        • <strong>⚠️ ATENÇÃO AO RASCUNHO E CONEXÃO:</strong> O rascunho é guardado automaticamente no disco do dispositivo a cada adição. Caso perca a conexão de internet ou feche o aplicativo, os dados anteriores estarão salvos. Certifique-se de <strong>gerar e descarregar o relatório PDF consolidado</strong> ao término do ciclo ou turno antes de limpar o rascunho para reiniciar os lançamentos.
+    </div>
+""", unsafe_allow_html=True)
+
 st.markdown("---")
 
 # --- BARRA LATERAL ---
 with st.sidebar:
   st.markdown("<div class='section-title' style='font-size:16px;'>Painel de Controle</div>", unsafe_allow_html=True)
   
-  agora_local = datetime.now()
+  agora_local = agora_brasilia()
   ano_atual = agora_local.year
   mes_atual = agora_local.month
 
@@ -336,7 +353,7 @@ with st.sidebar:
   mes_num = [k for k, v in meses_dict.items() if v == mes_nome][0]
 
   st.markdown("---")
-  st.info(f"📅 **Período Selecionado:** {mes_nome} de {ano}\n\n🕒 *Fuso local sincronizado.*")
+  st.info(f"📅 **Período Selecionado:** {mes_nome} de {ano}\n\n🕒 *Fuso de Brasília sincronizado.*")
 
   # --- CALENDÁRIO OPERACIONAL ---
   st.markdown("---")
@@ -403,12 +420,6 @@ with st.sidebar:
       st.success("Rascunho limpo e reiniciado com sucesso!")
       st.rerun()
 
-st.markdown(
-    "<div style='text-align: center;'>📌 <em>O calendário acompanha automaticamente o mês e ano correntes. "
-    "O rascunho é salvo em disco de forma persistente até que descarregue o relatório PDF final.</em></div>",
-    unsafe_allow_html=True
-)
-
 # --- LISTA DE ATIVIDADES NUMERADAS ---
 atividades_brutas = [
     "Receber pendências, verificar alarmes, registros anteriores e orientações",
@@ -468,15 +479,16 @@ atividades_base = [f"{i}. {ativ}" for i, ativ in enumerate(atividades_brutas, 1)
 
 # --- FORMULÁRIO PRINCIPAL ---
 st.markdown("<div class='section-title'>Registo de Turno e Atividades</div>", unsafe_allow_html=True)
+
 with st.form(key="form_registo_geral_v11"):
   
   col_t1, col_t2, col_t3 = st.columns(3)
   with col_t1:
     turno_atual = st.selectbox("Turno Operacional", ["Turno Manhã", "Turno Tarde", "Turno Noite"])
   with col_t2:
-    data_lancamento = st.date_input("Data do Registo", value=datetime.today())
+    data_lancamento = st.date_input("Data do Registo", value=agora_brasilia().date())
   with col_t3:
-    hora_lancamento = st.time_input("Hora da Execução", value=datetime.now().time())
+    hora_lancamento = st.time_input("Hora da Execução", value=agora_brasilia().time())
 
   st.markdown("---")
   col_e1, col_e2, col_e3, col_e4 = st.columns(4)
@@ -504,11 +516,20 @@ with st.form(key="form_registo_geral_v11"):
   with col_st2:
     foto_file = st.file_uploader("Comprovação Fotográfica (Opcional)", type=["png", "jpg", "jpeg"])
 
-  st.markdown("---")
-  observacao_input = st.text_area(
-      "Observação (Obrigatória se o status não for 'Concluído'):",
-      placeholder="Escreva aqui observações operacionais ou justificativas..."
-  )
+  # --- CAMPO DE OBSERVAÇÕES INDIVIDUALIZADAS POR ATIVIDADE SELECIONADA ---
+  observacoes_individuais = {}
+  if atividades_selecionadas:
+    st.markdown("---")
+    st.markdown("#### 📝 Observações / Detalhes Individuais por Atividade")
+    st.markdown("<small>Preencha especificamente a observação para cada atividade (ex: identificar a empresa na atividade 41).</small>", unsafe_allow_html=True)
+    
+    for ativ in atividades_selecionadas:
+      # Exibe um campo de texto exclusivo para cada atividade escolhida
+      observacoes_individuais[ativ] = st.text_input(
+          f"Observação para: {ativ[:60]}...",
+          placeholder="Ex: Empresa X esteve presente / Detalhe específico...",
+          key=f"obs_ind_{ativ}"
+      )
 
   submitted = st.form_submit_button("➕ Adicionar Atividade(s) ao Rascunho Persistente")
 
@@ -517,8 +538,6 @@ with st.form(key="form_registo_geral_v11"):
       st.warning("⚠️ Selecione pelo menos um responsável na equipa.")
     elif not atividades_selecionadas:
       st.warning("⚠️ Selecione pelo menos uma atividade na lista.")
-    elif status_item != "Concluído" and not observacao_input.strip():
-      st.error("⚠️ Como a atividade não está marcada como 'Concluído', é obrigatório preencher o campo Observação com o motivo/justificativa.")
     else:
       executores_lista = []
       if nomes_op: executores_lista.append(f"Op: {', '.join(nomes_op)}")
@@ -533,34 +552,43 @@ with st.form(key="form_registo_geral_v11"):
         with open(foto_path_temp, "wb") as f:
           f.write(foto_file.getbuffer())
 
+      # Carrega o rascunho atual diretamente do disco para evitar duplicação em cache
+      registros_atuais = carregar_rascunho_disco()
+
       for ativ in atividades_selecionadas:
-        novo_id = len(st.session_state["registros_turno"]) + 1
-        registo = {
-            "id": novo_id,
+        obs_especifica = observacoes_individuais.get(ativ, "").strip()
+        
+        novo_registo = {
             "turno": turno_atual,
             "data": data_lancamento.strftime("%d/%m/%Y"),
             "hora": hora_lancamento.strftime("%H:%M"),
             "atividade": ativ,
             "executores": str_executores,
             "status": status_item,
-            "observacao": observacao_input,
+            "observacao": obs_especifica if obs_especifica else "-",
             "foto_path": foto_path_temp
         }
-        st.session_state["registros_turno"].append(registo)
+        registros_atuais.append(novo_registo)
 
-      salvar_rascunho_disco(st.session_state["registros_turno"])
+      # Reatribui IDs sequenciais limpos e únicos para evitar qualquer duplicação
+      for idx, r in enumerate(registros_atuais, 1):
+        r["id"] = idx
 
-      st.success(f"✅ {len(atividades_selecionadas)} atividade(s) adicionada(s) e salvas com segurança!")
+      # Atualiza a sessão e salva no disco
+      st.session_state["registros_turno"] = registros_atuais
+      salvar_rascunho_disco(registros_atuais)
+
+      st.success(f"✅ {len(atividades_selecionadas)} atividade(s) adicionada(s) com observações individuais e salvas com segurança!")
       st.rerun()
 
 # --- VISUALIZAÇÃO DO RASCUNHO ATUAL ---
 st.markdown("---")
 st.markdown("<div class='section-title'>Rascunho Persistente do Turno (Salvo no Sistema)</div>", unsafe_allow_html=True)
 
-if len(st.session_state["registros_turno"]) > 0:
-  for i, r in enumerate(st.session_state["registros_turno"], 1):
-    r["id"] = i
+# Sincroniza session_state com o disco para garantir integridade visual
+st.session_state["registros_turno"] = carregar_rascunho_disco()
 
+if len(st.session_state["registros_turno"]) > 0:
   df_rascunho = pd.DataFrame(st.session_state["registros_turno"])[
       ["id", "turno", "data", "hora", "atividade", "executores", "status", "observacao"]
   ]
