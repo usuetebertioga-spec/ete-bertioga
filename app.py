@@ -23,7 +23,7 @@ FUSO_SP = pytz.timezone('America/Sao_Paulo')
 def agora_brasilia():
     return datetime.now(FUSO_SP)
 
-# --- CONTROLO DE ACESSO POR SENHA ---
+# --- CONTROLE DE ACESSO POR SENHA ---
 def verificar_senha():
     def senha_correta():
         if st.session_state["password"] == "bertioga2026":
